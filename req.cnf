@@ -1,0 +1,5 @@
+[req]
+distinguished_name=req
+
+[san]
+subjectAltName=DNS:wdemo.com,DNS:www.demo.net,IP:127.0.0.1
