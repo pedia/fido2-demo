@@ -25,6 +25,7 @@ func main() {
 		RPOrigin:      "https://wdemo.com",                  // The origin URL for WebAuthn requests
 		RPIcon:        "https://wdemo.com:8443/s/logo.jpeg", // Optional icon URL for your site
 		Debug:         true,
+		Timeout:       360000, // 6 minutes
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -61,7 +62,7 @@ func BeginRegistration(c *gin.Context) {
 	authSelect := protocol.AuthenticatorSelection{
 		ResidentKey:        protocol.ResidentKeyRequirementPreferred,
 		RequireResidentKey: protocol.ResidentKeyUnrequired(),
-		UserVerification:   protocol.VerificationRequired,
+		UserVerification:   protocol.VerificationRequired, //
 	}
 
 	user := datastore.GetUser() // Find or create the new user

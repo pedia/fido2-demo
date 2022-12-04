@@ -1,0 +1,78 @@
+<html>
+
+<head>
+  <link rel="icon" href="/s/favicon.png" />
+  <script>
+    function base64URLStringToBuffer(base64URLString) {
+      return Uint8Array.from(window.atob(base64URLString), c => c.charCodeAt(0));
+      // Convert from Base64URL to Base64
+      const base64 = base64URLString.replace(/-/g, '+').replace(/_/g, '/');
+      /**
+       * Pad with '=' until it's a multiple of four
+       * (4 - (85 % 4 = 1) = 3) % 4 = 3 padding
+       * (4 - (86 % 4 = 2) = 2) % 4 = 2 padding
+       * (4 - (87 % 4 = 3) = 1) % 4 = 1 padding
+       * (4 - (88 % 4 = 0) = 4) % 4 = 0 padding
+       */
+      const padLength = (4 - (base64.length % 4)) % 4;
+      const padded = base64.padEnd(base64.length + padLength, '=');
+
+      // Convert to a binary string
+      const binary = atob(padded);
+
+      // Convert binary string to buffer
+      const buffer = new ArrayBuffer(binary.length);
+      const bytes = new Uint8Array(buffer);
+
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      return buffer;
+    }
+
+    function stringToBuffer(s) {
+      return new TextEncoder().encode(s);
+    }
+
+    async function register() {
+      if (!window.PublicKeyCredential) {
+        // Client not capable. Handle error.
+        console.log('navigator.credentials not supported');
+        return;
+      }
+
+      navigator.credentials.get().then(
+        v => console.log('filled:', v),
+        reason => console.log('reject:', reason),
+      );
+
+      var opts = {{.}};
+
+      // xxx str to ArrayBuffer
+      opts.publicKey.challenge = base64URLStringToBuffer(opts.publicKey.challenge);
+      opts.publicKey.user.id = stringToBuffer(opts.publicKey.user.id);
+
+      navigator.credentials.create(opts)
+        .then(do_register)
+        .catch(register_failed);
+    }
+
+    // Send new credential info to server for verification and registration.
+    function do_register(newCredentialInfo) {}
+
+    // No acceptable authenticator or user refused consent. Handle appropriately.
+    function register_failed(err) {}
+
+    window.onload = register;
+  </script>
+</head>
+
+<body>
+  <p>
+    <a href="/">Goto /</a>
+  </p>
+
+</body>
+
+</html>
