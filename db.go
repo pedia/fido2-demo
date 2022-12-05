@@ -79,7 +79,7 @@ ctime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)`
 type Credential struct {
 	Id              string    `db:"id"`
 	PublicKey       string    `db:"public_key"`
-	AttestationType string    `db:"attestation_type"`
+	AttestationType string    `db:"attestation_type"` // "none"(default), "indirect", "direct"
 	Uid             uint32    `db:"uid"`
 	Ctime           time.Time `db:"ctime"`
 }
