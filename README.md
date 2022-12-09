@@ -4,10 +4,11 @@ W3C 规范: [webappsec-credential-management](https://w3c.github.io/webappsec-cr
 
 ## 过程
 
+- 必须用域名，必须有证书(自签名亦可)
 - navigator.credentials.create() 参数对象结构必须正确，
   publicKey.user.id, publicKey.challenge 类型必须为 ArrayBuffer
-- 必须用域名，必须有证书(自签名亦可)
 - await navigator.credentials.create()
+- Reset Keys: "Reset your security key" of chrome://settings/securityKeys
 
 ## gin 不如 fasthttp 好用
 

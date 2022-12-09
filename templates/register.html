@@ -57,12 +57,12 @@
       opts.publicKey.user.id = stringToBuffer(opts.publicKey.user.id);
 
       navigator.credentials.create(opts)
-        .then(handle)
-        .catch(request_failed);
+        .then(handle_register)
+        .catch(handle_failed);
     }
 
     // Send new credential info to server for verification and registration.
-    function handle(credential) {
+    function handle_register(credential) {
       console.log('got raw', credential)
 
       const { id, rawId, response, type } = credential;
@@ -83,8 +83,52 @@
     }
 
     // No acceptable authenticator or user refused consent. Handle appropriately.
-    function request_failed(err) {
+    function handle_failed(err) {
       console.log('create failed', err)
+    }
+
+    async function login() {
+      if (!window.PublicKeyCredential) {
+        // Client not capable. Handle error.
+        console.log('navigator.credentials not supported');
+        return;
+      }
+
+      var opts = {{.}};
+      console.log(opts);
+
+      // Converto Json str to ArrayBuffer
+      opts.publicKey.challenge = base64URLStringToBuffer(opts.publicKey.challenge);
+      for (var i=0; i<opts.publicKey.allowCredentials.length; i++) {
+        opts.publicKey.allowCredentials[i].id
+          = base64URLStringToBuffer(opts.publicKey.allowCredentials[i].id);
+      }
+
+      navigator.credentials.get(opts)
+        .then(handle_login)
+        .catch(handle_failed);
+    }
+
+    function handle_login(credential) {
+      console.log('got raw', credential)
+
+      const { id, rawId, response, type } = credential;
+      console.log(id, rawId, response, type);
+
+      const c = {
+        id,
+        rawId: bufferToBase64URLString(rawId),
+        response: {
+          authenticatorData: bufferToBase64URLString(response.authenticatorData),
+          clientDataJSON: bufferToBase64URLString(response.clientDataJSON),
+          signature: bufferToBase64URLString(response.signature),
+          userHandle: bufferToBase64URLString(response.userHandle),
+        },
+        type,
+        clientExtensionResults: credential.getClientExtensionResults(),
+        authenticatorAttachment: credential.authenticatorAttachment,
+      };
+      send('/login', c);
     }
 
     var a = {
@@ -114,10 +158,6 @@
       xhr.send(o);
     }
 
-    function login() {
-      navigator.credentials.get()
-        .then();
-    }
 
   </script>
 </head>
@@ -126,7 +166,7 @@
   <ul>
     <li><a href="/">Goto /</a></li>
     <li><button onclick="register();">Register</button></li>
-    <li><button onclick="">Authenticate</button></li>
+    <li><button onclick="login();">Authenticate</button></li>
   </ul>
 
 </body>

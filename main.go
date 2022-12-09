@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/duo-labs/webauthn/protocol"
 	wan "github.com/duo-labs/webauthn/webauthn"
@@ -15,6 +17,15 @@ var (
 	datastore Store  = NewStore()
 	site      string = "https://wdemo.com"
 )
+
+func session_from(c *gin.Context) (*User, *wan.SessionData) {
+	if is, err := c.Cookie("sid"); err == nil {
+		if sid, err := strconv.Atoi(is); err == nil {
+			return datastore.GetSession(sid)
+		}
+	}
+	return nil, nil
+}
 
 // Your initialization function
 func main() {
@@ -77,13 +88,22 @@ func BeginRegistration(c *gin.Context) {
 		user,
 		wan.WithAuthenticatorSelection(authSelect),
 	)
-	// handle errors if present
+	if err != nil {
+		c.AbortWithError(http.StatusServiceUnavailable, err)
+		return
+	}
+
 	// webauthn.SessionData{Challenge:"UILZsLXDM92UVGiKXrPT4-LRm0M6w4MCSEoDuy57hjg",
 	// UserID:[]uint8{0x69, 0x64, 0x2d, 0x66, 0x6f, 0x6f},
 	// AllowedCredentialIDs:[][]uint8(nil),
 	// UserVerification:"required", Extensions:protocol.AuthenticationExtensions(nil)}
-	datastore.SaveSession(sessionData)
-	_ = err
+	sid, err := datastore.SaveSession(sessionData)
+	if err != nil {
+		c.AbortWithError(http.StatusServiceUnavailable, err)
+		return
+	}
+
+	c.SetCookie("sid", fmt.Sprintf("%d", sid), 0, "", "", true, true)
 
 	// store the sessionData values
 	// options.Response.Parameters = []protocol.CredentialParameter{
@@ -105,33 +125,23 @@ func BeginRegistration(c *gin.Context) {
 
 func FinishRegistration(c *gin.Context) {
 	// next: redirect url after finished
-	name := c.Query("username")
-	if name == "" {
-		name = "foo"
-	}
 
-	// log.Printf("headers: %v", c.Request.Header)
-
-	// TODO: read from body
-	// var p []byte
-	// if n, err := c.Request.Body.Read(p); err == nil {
-	// 	 log.Printf("body: %d\n %s\n", n, string(p))
-	// }
-
-	user := datastore.GetUser(name) // Get the user
-	sd := datastore.GetSession(name)
-	if len(sd) == 0 {
+	parsedResponse, err := protocol.ParseCredentialCreationResponseBody(c.Request.Body)
+	log.Printf("response: %#v", parsedResponse)
+	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
+
 	// Get the session data stored from the function above
 	// using gorilla/sessions it could look like this
-	// sessionData := wan.SessionData{} // store.Get(r, "registration-session")
-	parsedResponse, err := protocol.ParseCredentialCreationResponseBody(c.Request.Body)
-	log.Printf("response: %#v", parsedResponse)
-	_ = err
+	u, sd := session_from(c)
+	if sd == nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
 
-	credential, err := web.CreateCredential(user, sd[0], parsedResponse)
+	credential, err := web.CreateCredential(u, *sd, parsedResponse)
 	log.Printf("credential: %s\n%#v", err, credential)
 
 	// &webauthn.Credential{
@@ -144,7 +154,7 @@ func FinishRegistration(c *gin.Context) {
 	// 			CloneWarning:false
 	// 		}
 	// 	}
-	datastore.SaveCredential(user, credential)
+	datastore.SaveCredential(u, credential)
 
 	// Handle validation or input errors
 	// If creation was successful, store the credential object
@@ -158,27 +168,40 @@ func BeginLogin(c *gin.Context) {
 	}
 
 	user := datastore.GetUser(name) // Find the user
-	options, sessionData, err := web.BeginLogin(user)
+	options, sessionData, err := web.BeginLogin(
+		user,
+		func(pkcro *protocol.PublicKeyCredentialRequestOptions) {
+			pkcro.UserVerification = protocol.VerificationRequired
+		},
+	)
 	// handle errors if present
-	_ = sessionData
 	_ = err
+
+	datastore.SaveSession(sessionData)
+
 	// store the sessionData values
 	// c.JSON(http.StatusOK, options) // return the options generated
 	// options.publicKey contain our registration options
-	c.HTML(http.StatusOK, "login.html", options)
+	c.HTML(http.StatusOK, "register.html", options)
 }
 
 func FinishLogin(c *gin.Context) {
 	// next:
+	u, sd := session_from(c)
+	if sd == nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
 
-	user := datastore.GetUser("") // Get the user
-	// Get the session data stored from the function above
-	// using gorilla/sessions it could look like this
-	sessionData := wan.SessionData{} // store.Get(r, "login-session")
-	parsedResponse, err := protocol.ParseCredentialRequestResponseBody(c.Request.Body)
-	_ = err
-	credential, err := web.ValidateLogin(user, sessionData, parsedResponse)
-	_ = credential
+	if parsedResponse, err := protocol.ParseCredentialRequestResponseBody(
+		c.Request.Body,
+	); err == nil {
+		credential, err := web.ValidateLogin(
+			u, *sd, parsedResponse,
+		)
+		log.Printf("login %s\n%#v", err, credential)
+	}
+
 	// Handle validation or input errors
 	// If login was successful, handle next steps
 	c.JSON(http.StatusOK, "Login Success")
