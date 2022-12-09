@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/base64"
+	"encoding/binary"
 	"testing"
 
 	"github.com/duo-labs/webauthn/protocol"
@@ -8,15 +10,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestDecode(t *testing.T) {
+	is := assert.New(t)
+
+	// db.Uid        =>    webauthn.User.WebAuthnID()
+	// 1 => 0000 0001
+	// json encode: AgAAAA==
+	// wrong: stringToBuffer('AgAAAA==')
+	// base64URLStringToBuffer('AgAAAA==') => ArrayBuffer[2,0,0,0]
+
+	bs, erb := base64.RawURLEncoding.DecodeString("QVFBQUFBPT0")
+	is.Nil(erb)
+	i1 := binary.LittleEndian.Uint32(bs)
+	is.Equal(uint32(0x41415141), i1)
+}
+
 func TestStore(t *testing.T) {
 	is := assert.New(t)
 
 	store := NewStore()
 	is.NotNil(store)
 
-	u := store.GetUser("foo")
+	u := store.GetUser("bar")
 	is.NotNil(u)
-	is.Equal("foo", u.Name)
+	is.Equal("bar", u.Name)
 	is.Greater(u.Uid, uint32(0))
 	is.False(u.Status)
 	is.False(u.Ctime.IsZero())

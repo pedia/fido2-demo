@@ -54,7 +54,7 @@
 
       // Converto Json str to ArrayBuffer
       opts.publicKey.challenge = base64URLStringToBuffer(opts.publicKey.challenge);
-      opts.publicKey.user.id = stringToBuffer(opts.publicKey.user.id);
+      opts.publicKey.user.id = base64URLStringToBuffer(opts.publicKey.user.id);
 
       navigator.credentials.create(opts)
         .then(handle_register)

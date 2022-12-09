@@ -27,6 +27,10 @@ func session_from(c *gin.Context) (*User, *wan.SessionData) {
 	return nil, nil
 }
 
+func session_to(c *gin.Context, sid int) {
+	c.SetCookie("sid", fmt.Sprintf("%d", sid), 0, "", "", true, true)
+}
+
 // Your initialization function
 func main() {
 	web, err = wan.New(&wan.Config{
@@ -103,7 +107,7 @@ func BeginRegistration(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("sid", fmt.Sprintf("%d", sid), 0, "", "", true, true)
+	session_to(c, sid)
 
 	// store the sessionData values
 	// options.Response.Parameters = []protocol.CredentialParameter{
@@ -177,7 +181,13 @@ func BeginLogin(c *gin.Context) {
 	// handle errors if present
 	_ = err
 
-	datastore.SaveSession(sessionData)
+	sid, err := datastore.SaveSession(sessionData)
+	if err != nil {
+		c.AbortWithError(http.StatusServiceUnavailable, err)
+		return
+	}
+
+	session_to(c, sid)
 
 	// store the sessionData values
 	// c.JSON(http.StatusOK, options) // return the options generated
