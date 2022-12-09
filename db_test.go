@@ -22,15 +22,21 @@ func TestStore(t *testing.T) {
 	is.False(u.Ctime.IsZero())
 
 	sd := wan.SessionData{Challenge: "UILZsLXDM92UVGiKXrPT4-LRm0M6w4MCSEoDuy57hjg",
-		UserID:               []uint8{0x69, 0x64, 0x2d, 0x66},
+		UserID:               uint32_to_bytes(u.Uid),
 		AllowedCredentialIDs: [][]uint8(nil),
 		UserVerification:     "required", Extensions: protocol.AuthenticationExtensions(nil)}
 
-	err := store.SaveSession(&sd)
+	sid, err := store.SaveSession(&sd)
 	is.Nil(err)
+	is.NotEqual(sid, 0)
 
-	sds := store.GetSession(u.Name)
-	is.NotEmpty(sds)
+	u2, sd2 := store.GetSession(sid)
+	is.NotEmpty(sd2)
+	is.Equal(sd.Challenge, sd2.Challenge)
+
+	is.NotEmpty(u2)
+	is.Equal(u.Name, u2.Name)
+	is.Equal(u.Uid, u2.Uid)
 
 	c := &wan.Credential{
 		ID:              []uint8{0xc1, 0x9c, 0xd8, 0xd1, 0x68, 0xc, 0xb6, 0x30, 0xa0, 0x3a, 0xa1, 0x7c, 0x3c, 0x6c, 0x59, 0xad},
