@@ -9,6 +9,7 @@ W3C 规范: [webappsec-credential-management](https://w3c.github.io/webappsec-cr
   publicKey.user.id, publicKey.challenge 类型必须为 ArrayBuffer
 - await navigator.credentials.create()
 - Reset Keys: "Reset your security key" of chrome://settings/securityKeys
+- 错误使用 base64URLStringToBuffer/stringToBuffer 浪费半天才解决
 
 ## gin 不如 fasthttp 好用
 
