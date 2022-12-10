@@ -13,8 +13,8 @@ require (
 )
 
 replace (
-	github.com/duo-labs/webauthn => ../webauthn
-	github.com/gin-gonic/gin => ../gin
+	github.com/duo-labs/webauthn => ../../webauthn
+	github.com/gin-gonic/gin => ../../gin
 )
 
 require (

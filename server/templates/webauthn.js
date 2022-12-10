@@ -127,12 +127,19 @@ function handle_login(credential) {
 
 function userNameChanged() {
     var un = document.querySelector('#un').value;
+    un = un.trim();
 
     document.querySelector('#register').href = '/register?username=' + un;
     document.querySelector('#login').href = '/login?username=' + un;
 }
 
 function send(url, credential) {
+    var p = new URLSearchParams(location.search);
+    const next = p.get('next');
+    if (next) {
+        url += '?next='+next;
+    }
+
     var xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");

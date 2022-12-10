@@ -1,11 +1,11 @@
 <html>
 {{ template "head" }}
-
+<script>var opts={{.Opts}};</script>
 <body>
   <label for="un">Username</label>: <input id="un" name="username" value="{{.Username}}" readonly /> <br />
-  <button onclick="login(opts);">Login</button>
+  <button onclick="register(opts);">Register</button>
   <ul>
-    <li><a id="register" href="/register?Username={{.Username}}">Goto /register</a></li>
+    <li><a id="login" href="/login?username={{.Username}}">Goto /login</a></li>
     <li><a href="/">Goto /</a></li>
   </ul>
 

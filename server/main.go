@@ -129,7 +129,7 @@ func BeginRegistration(c *gin.Context) {
 }
 
 func FinishRegistration(c *gin.Context) {
-	// next: redirect url after finished
+	next := c.Query("next")
 
 	parsedResponse, err := protocol.ParseCredentialCreationResponseBody(c.Request.Body)
 	log.Printf("response: %#v", parsedResponse)
@@ -164,9 +164,15 @@ func FinishRegistration(c *gin.Context) {
 	// Handle validation or input errors
 	// If creation was successful, store the credential object
 	if err == nil {
+		if next != "" {
+			c.Redirect(http.StatusFound, next)
+			return
+		}
+
 		c.JSON(http.StatusOK, "Registration Success") // Handle next steps
 		return
 	}
+
 	c.JSON(http.StatusOK, "Registration Failed") // Handle next steps
 }
 
@@ -210,6 +216,8 @@ func FinishLogin(c *gin.Context) {
 		return
 	}
 
+	next := c.Query("next")
+
 	if parsedResponse, err := protocol.ParseCredentialRequestResponseBody(
 		c.Request.Body,
 	); err == nil {
@@ -218,12 +226,15 @@ func FinishLogin(c *gin.Context) {
 		)
 		log.Printf("login %s\n%#v", err, credential)
 		if err == nil {
+			if next != "" {
+				c.Redirect(http.StatusFound, next)
+				return
+			}
+
 			c.JSON(http.StatusOK, "Login Success")
 			return
 		}
 	}
 
-	// Handle validation or input errors
-	// If login was successful, handle next steps
 	c.JSON(http.StatusOK, "Login Failed")
 }
