@@ -1,15 +1,14 @@
 <html>
-<head>
-  <link rel="icon" href="/s/favicon.png" />
-  <script>
-    // {{template "js"}}
-  </script>
-</head>
+{{ template "head" }}
 
 <body>
   {{if .}}Error: {{.}}<br /> {{end}}
 
+  First set name, default "foo". <br />
   <label for="un">Username</label>: <input id="un" name="username" value="foo" onchange="userNameChanged();"/>
+  <br />
+  <br />
+  Second Click link below.
   <ul>
     <li><a id="register" href="/register">Register</a></li>
     <li><a id="login" href="/login">Login</a></li>

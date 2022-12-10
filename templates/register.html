@@ -1,33 +1,5 @@
 <html>
-<head>
-  <link rel="icon" href="/s/favicon.png" />
-  <style>
-    #log {
-      white-space: pre-wrap;      /* CSS3 */
-      white-space: -moz-pre-wrap; /* Firefox */
-      white-space: -pre-wrap;     /* Opera <7 */
-      white-space: -o-pre-wrap;   /* Opera 7 */
-      word-wrap: break-word;      /* IE */
-      width: 90%;
-    }
-  </style>
-  <script>
-    // Mocked data POST to /register
-    var a = {
-      "id": "E52pU9ogO4LJmiR-NscsYQ",
-      "rawId": "E52pU9ogO4LJmiR-NscsYQ",
-      "response": {
-        "attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViUSX8Zyu___R8jpuCXm9S2uUjATao2ndgzzZo995POa1hdAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBOdqVPaIDuCyZokfjbHLGGlAQIDJiABIVggI5p65-SbgZ9t_DaZ7GERvsxeLXpvpVxdSiReEH3T3zsiWCAiMIoI-2iM601mzRr7Q5R-dFGb_kQMp_TNU1ctPjAOgg",
-        "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiMWhqVWZKREJzTS1KejRRcEphTHU5MVdHQ0htdV9xVlFpdUpNUkpvbVR1ayIsIm9yaWdpbiI6Imh0dHBzOi8vd2RlbW8uY29tOjg0NDMiLCJjcm9zc09yaWdpbiI6ZmFsc2V9"
-      },
-      "type": "public-key",
-      "clientExtensionResults": {},
-      "authenticatorAttachment": "cross-platform",
-    };
-    var opts = {{.Opts}};
-    // {{template "js"}}
-  </script>
-</head>
+{{ template "head" }}
 
 <body>
   <label for="un">Username</label>: <input id="un" name="username" value="{{.Username}}" readonly /> <br />

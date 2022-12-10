@@ -16,7 +16,7 @@ var (
 	web       *wan.WebAuthn
 	err       error
 	datastore Store  = NewStore()
-	site      string = "https://wdemo.com"
+	site      string = "https://9aedu.net"
 )
 
 func session_from(c *gin.Context) (*User, *wan.SessionData) {
@@ -35,10 +35,10 @@ func session_to(c *gin.Context, sid int) {
 // Your initialization function
 func main() {
 	web, err = wan.New(&wan.Config{
-		RPDisplayName: "Demo(site)",                         // Display Name for your site
-		RPID:          "wdemo.com",                          // Generally the FQDN for your site
-		RPOrigin:      "https://wdemo.com:8443",             // The origin URL for WebAuthn requests
-		RPIcon:        "https://wdemo.com:8443/s/logo.jpeg", // Optional icon URL for your site
+		RPDisplayName: "Demo(site)",                    // Display Name for your site
+		RPID:          "9aedu.net",                     // Generally the FQDN for your site
+		RPOrigin:      "https://9aedu.net",             // The origin URL for WebAuthn requests
+		RPIcon:        "https://9aedu.net/s/logo.jpeg", // Optional icon URL for your site
 		Debug:         true,
 		Timeout:       360000, // 6 minutes
 	})
@@ -67,7 +67,7 @@ func main() {
 	r.LoadHTMLGlob("templates/*")
 
 	// navigator.credentials need tls
-	r.RunTLS(":8443", "demo.pem", "demo.key")
+	r.RunTLS(":443", "demo.pem", "demo.key")
 }
 
 func BeginRegistration(c *gin.Context) {

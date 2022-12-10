@@ -17,5 +17,5 @@ demo.linux: main.go
 		CC=x86_64-linux-musl-gcc  CXX=x86_64-linux-musl-g++ go \
 		build -ldflags="-extldflags=-static" -o $@ demo
 
-pub: demo.key demo.pem demo.linux
-	scp -r demo.key demo.pem demo.linux s templates root@ss.ali:demo
+pub: demo.linux
+	scp -r demo.linux s templates root@ss.ali:demo
