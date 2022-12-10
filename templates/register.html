@@ -1,136 +1,18 @@
 <html>
-
 <head>
   <link rel="icon" href="/s/favicon.png" />
+  <style>
+    #log {
+      white-space: pre-wrap;      /* CSS3 */
+      white-space: -moz-pre-wrap; /* Firefox */
+      white-space: -pre-wrap;     /* Opera <7 */
+      white-space: -o-pre-wrap;   /* Opera 7 */
+      word-wrap: break-word;      /* IE */
+      width: 90%;
+    }
+  </style>
   <script>
-    // convert a Unicode string to a string in which
-    // each 16-bit unit occupies only one byte
-    function toBinary(string) {
-      const codeUnits = Uint16Array.from(
-        { length: string.length },
-        (element, index) => string.charCodeAt(index)
-      );
-      const charCodes = new Uint8Array(codeUnits.buffer);
-
-      let result = "";
-      charCodes.forEach((char) => {
-        result += String.fromCharCode(char);
-      });
-      return result;
-    }
-
-    function base64URLStringToBuffer(base64URLString) {
-      return Uint8Array.from(window.atob(base64URLString), c => c.charCodeAt(0));
-    }
-
-    function stringToBuffer(s) {
-      return new TextEncoder().encode(s);
-    }
-
-    function bufferToBase64URLString(buffer) {
-      const bytes = new Uint8Array(buffer);
-      let str = '';
-
-      for (const charCode of bytes) {
-        str += String.fromCharCode(charCode);
-      }
-      const base64String = btoa(str);
-      return base64String.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    }
-
-    async function is_pkc_available() {
-      return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-    }
-
-    //
-    async function register() {
-      if (!window.PublicKeyCredential) {
-        // Client not capable. Handle error.
-        console.log('navigator.credentials not supported');
-        return;
-      }
-
-      var opts = {{.}};
-
-      // Converto Json str to ArrayBuffer
-      opts.publicKey.challenge = base64URLStringToBuffer(opts.publicKey.challenge);
-      opts.publicKey.user.id = base64URLStringToBuffer(opts.publicKey.user.id);
-
-      navigator.credentials.create(opts)
-        .then(handle_register)
-        .catch(handle_failed);
-    }
-
-    // Send new credential info to server for verification and registration.
-    function handle_register(credential) {
-      console.log('got raw', credential)
-
-      const { id, rawId, response, type } = credential;
-      console.log(id, rawId, response, type);
-
-      const c = {
-        id,
-        rawId: bufferToBase64URLString(rawId),
-        response: {
-          attestationObject: bufferToBase64URLString(response.attestationObject),
-          clientDataJSON: bufferToBase64URLString(response.clientDataJSON),
-        },
-        type,
-        clientExtensionResults: credential.getClientExtensionResults(),
-        authenticatorAttachment: credential.authenticatorAttachment,
-      };
-      send('/register', c);
-    }
-
-    // No acceptable authenticator or user refused consent. Handle appropriately.
-    function handle_failed(err) {
-      console.log('create failed', err)
-    }
-
-    async function login() {
-      if (!window.PublicKeyCredential) {
-        // Client not capable. Handle error.
-        console.log('navigator.credentials not supported');
-        return;
-      }
-
-      var opts = {{.}};
-      console.log(opts);
-
-      // Converto Json str to ArrayBuffer
-      opts.publicKey.challenge = base64URLStringToBuffer(opts.publicKey.challenge);
-      for (var i=0; i<opts.publicKey.allowCredentials.length; i++) {
-        opts.publicKey.allowCredentials[i].id
-          = base64URLStringToBuffer(opts.publicKey.allowCredentials[i].id);
-      }
-
-      navigator.credentials.get(opts)
-        .then(handle_login)
-        .catch(handle_failed);
-    }
-
-    function handle_login(credential) {
-      console.log('got raw', credential)
-
-      const { id, rawId, response, type } = credential;
-      console.log(id, rawId, response, type);
-
-      const c = {
-        id,
-        rawId: bufferToBase64URLString(rawId),
-        response: {
-          authenticatorData: bufferToBase64URLString(response.authenticatorData),
-          clientDataJSON: bufferToBase64URLString(response.clientDataJSON),
-          signature: bufferToBase64URLString(response.signature),
-          userHandle: bufferToBase64URLString(response.userHandle),
-        },
-        type,
-        clientExtensionResults: credential.getClientExtensionResults(),
-        authenticatorAttachment: credential.authenticatorAttachment,
-      };
-      send('/login', c);
-    }
-
+    // Mocked data POST to /register
     var a = {
       "id": "E52pU9ogO4LJmiR-NscsYQ",
       "rawId": "E52pU9ogO4LJmiR-NscsYQ",
@@ -142,33 +24,19 @@
       "clientExtensionResults": {},
       "authenticatorAttachment": "cross-platform",
     };
-
-    function send(url, credential) {
-      var xhr = new XMLHttpRequest();
-      xhr.open("POST", url, true);
-      xhr.setRequestHeader("Content-Type","application/json; charset=utf-8");
-
-      xhr.onreadystatechange = () => {
-        console.log('readyState', xhr.readyState);
-        if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {}
-      };
-
-      const o = JSON.stringify(credential);
-      console.log('send', o);
-      xhr.send(o);
-    }
-
-
+    var opts = {{.Opts}};
+    // {{template "js"}}
   </script>
 </head>
 
 <body>
+  <label for="un">Username</label>: <input id="un" name="username" value="{{.Username}}" readonly /> <br />
+  <button onclick="register(opts);">Register</button>
   <ul>
+    <li><a id="login" href="/login?username={{.Username}}">Goto /login</a></li>
     <li><a href="/">Goto /</a></li>
-    <li><button onclick="register();">Register</button></li>
-    <li><button onclick="login();">Authenticate</button></li>
   </ul>
 
+  <div id="log"></div>
 </body>
-
 </html>

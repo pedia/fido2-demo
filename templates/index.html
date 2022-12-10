@@ -1,14 +1,19 @@
 <html>
-
 <head>
   <link rel="icon" href="/s/favicon.png" />
+  <script>
+    // {{template "js"}}
+  </script>
 </head>
 
 <body>
+  {{if .}}Error: {{.}}<br /> {{end}}
+
+  <label for="un">Username</label>: <input id="un" name="username" value="foo" onchange="userNameChanged();"/>
   <ul>
+    <li><a id="register" href="/register">Register</a></li>
+    <li><a id="login" href="/login">Login</a></li>
     <li><a href="/">Goto /</a></li>
-    <li><a href="/register">Register</a></li>
-    <li><a href="/login">Login</a></li>
   </ul>
   <!-- <form method="POST" action="register">
     <label for="name">User Name:</label>
@@ -23,5 +28,4 @@
   </form> -->
 
 </body>
-
 </html>

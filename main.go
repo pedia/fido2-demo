@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -63,7 +64,7 @@ func main() {
 	r.POST("/login", FinishLogin)
 	// log.Println("listen on http://0.0.0.0:8443")
 
-	r.LoadHTMLGlob("templates/*.html")
+	r.LoadHTMLGlob("templates/*")
 
 	// navigator.credentials need tls
 	r.RunTLS(":8443", "demo.pem", "demo.key")
@@ -93,7 +94,7 @@ func BeginRegistration(c *gin.Context) {
 		wan.WithAuthenticatorSelection(authSelect),
 	)
 	if err != nil {
-		c.AbortWithError(http.StatusServiceUnavailable, err)
+		c.HTML(http.StatusOK, "index.html", err)
 		return
 	}
 
@@ -103,7 +104,7 @@ func BeginRegistration(c *gin.Context) {
 	// UserVerification:"required", Extensions:protocol.AuthenticationExtensions(nil)}
 	sid, err := datastore.SaveSession(sessionData)
 	if err != nil {
-		c.AbortWithError(http.StatusServiceUnavailable, err)
+		c.HTML(http.StatusOK, "index.html", err)
 		return
 	}
 
@@ -124,7 +125,7 @@ func BeginRegistration(c *gin.Context) {
 	log.Printf("%#v\n%#v", options, sessionData)
 
 	// options.publicKey contain our registration options
-	c.HTML(http.StatusOK, "register.html", options)
+	c.HTML(http.StatusOK, "register.html", map[string]any{"Opts": options, "Username": name})
 }
 
 func FinishRegistration(c *gin.Context) {
@@ -133,7 +134,7 @@ func FinishRegistration(c *gin.Context) {
 	parsedResponse, err := protocol.ParseCredentialCreationResponseBody(c.Request.Body)
 	log.Printf("response: %#v", parsedResponse)
 	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
+		c.HTML(http.StatusOK, "index.html", err)
 		return
 	}
 
@@ -141,7 +142,7 @@ func FinishRegistration(c *gin.Context) {
 	// using gorilla/sessions it could look like this
 	u, sd := session_from(c)
 	if sd == nil {
-		c.AbortWithStatus(http.StatusBadRequest)
+		c.HTML(http.StatusOK, "index.html", errors.New("no session"))
 		return
 	}
 
@@ -162,7 +163,11 @@ func FinishRegistration(c *gin.Context) {
 
 	// Handle validation or input errors
 	// If creation was successful, store the credential object
-	c.JSON(http.StatusOK, "Registration Success") // Handle next steps
+	if err == nil {
+		c.JSON(http.StatusOK, "Registration Success") // Handle next steps
+		return
+	}
+	c.JSON(http.StatusOK, "Registration Failed") // Handle next steps
 }
 
 func BeginLogin(c *gin.Context) {
@@ -179,11 +184,14 @@ func BeginLogin(c *gin.Context) {
 		},
 	)
 	// handle errors if present
-	_ = err
+	if err != nil {
+		c.HTML(http.StatusOK, "index.html", err)
+		return
+	}
 
 	sid, err := datastore.SaveSession(sessionData)
 	if err != nil {
-		c.AbortWithError(http.StatusServiceUnavailable, err)
+		c.HTML(http.StatusOK, "index.html", err)
 		return
 	}
 
@@ -192,14 +200,13 @@ func BeginLogin(c *gin.Context) {
 	// store the sessionData values
 	// c.JSON(http.StatusOK, options) // return the options generated
 	// options.publicKey contain our registration options
-	c.HTML(http.StatusOK, "register.html", options)
+	c.HTML(http.StatusOK, "login.html", map[string]any{"Opts": options, "Username": name})
 }
 
 func FinishLogin(c *gin.Context) {
-	// next:
 	u, sd := session_from(c)
 	if sd == nil {
-		c.AbortWithStatus(http.StatusBadRequest)
+		c.HTML(http.StatusOK, "index.html", errors.New("no session"))
 		return
 	}
 
@@ -210,9 +217,13 @@ func FinishLogin(c *gin.Context) {
 			u, *sd, parsedResponse,
 		)
 		log.Printf("login %s\n%#v", err, credential)
+		if err == nil {
+			c.JSON(http.StatusOK, "Login Success")
+			return
+		}
 	}
 
 	// Handle validation or input errors
 	// If login was successful, handle next steps
-	c.JSON(http.StatusOK, "Login Success")
+	c.JSON(http.StatusOK, "Login Failed")
 }
