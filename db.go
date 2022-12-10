@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -32,6 +33,7 @@ ctime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)`
 func (u User) WebAuthnID() []byte {
 	bs := make([]byte, 4)
 	binary.LittleEndian.PutUint32(bs, u.Uid)
+	log.Printf("uid: %#v", bs)
 	return bs
 }
 
@@ -96,8 +98,8 @@ ctime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)`
 // TODO:
 type Store interface {
 	GetUser(name string) *User
-	SaveSession(s *wan.SessionData) error
-	GetSession(name string) []wan.SessionData
+	SaveSession(s *wan.SessionData) (int, error)
+	GetSession(sid int) (*User, *wan.SessionData)
 	SaveCredential(u *User, c *wan.Credential) error
 }
 
@@ -136,17 +138,18 @@ func (d *dummy_store) GetUser(name string) *User {
 	return nil
 }
 
-func (d *dummy_store) SaveSession(s *wan.SessionData) error {
-	sess := Session{
-		Uid:       binary.LittleEndian.Uint32(s.UserID),
-		Challenge: s.Challenge,
+func (d *dummy_store) SaveSession(s *wan.SessionData) (int, error) {
+	uid := binary.LittleEndian.Uint32(s.UserID)
+	if res, err := d.db.Exec(
+		"INSERT INTO session(uid,challenge) VALUES(?, ?)",
+		uid, s.Challenge,
+	); err == nil {
+		if id, err := res.LastInsertId(); err == nil {
+			return int(id), nil
+		}
+
 	}
-	res, err := d.db.NamedExec(
-		"INSERT INTO session(uid,challenge) VALUES(:uid,:challenge)",
-		sess,
-	)
-	_ = res
-	return err
+	return 0, err
 }
 
 func uint32_to_bytes(i uint32) []byte {
@@ -155,26 +158,36 @@ func uint32_to_bytes(i uint32) []byte {
 	return bs
 }
 
-func (d *dummy_store) GetSession(name string) []wan.SessionData {
-	var ss []Session
-	err := d.db.Select(
-		&ss,
-		`SELECT session.* FROM session JOIN user ON user.uid = session.uid WHERE user.name=? ORDER BY id desc`,
-		name,
+func (d *dummy_store) GetSession(sid int) (*User, *wan.SessionData) {
+	var v Session
+	err := d.db.Get(
+		&v,
+		`SELECT * FROM session WHERE id=?`,
+		sid,
 	)
 	if err != nil {
-		return nil
+		return nil, nil
 	}
 
-	return lo.Map(ss, func(v Session, i int) wan.SessionData {
-		return wan.SessionData{
-			Challenge:            v.Challenge,
-			UserID:               uint32_to_bytes(v.Uid),
-			AllowedCredentialIDs: nil,
-			UserVerification:     protocol.VerificationRequired,
-			Extensions:           nil,
-		}
-	})
+	var vc []Credential
+	ers := d.db.Select(&vc, `SELECT * FROM credential WHERE uid=?`, v.Uid)
+
+	var u User
+	eru := d.db.Get(&u, `SELECT * FROM user WHERE uid=?`, v.Uid)
+	if ers != nil || eru != nil {
+		return nil, nil
+	}
+
+	return &u, &wan.SessionData{
+		Challenge: v.Challenge,
+		UserID:    uint32_to_bytes(v.Uid),
+		AllowedCredentialIDs: lo.Map(vc, func(v Credential, i int) []byte {
+			bs, _ := base64.RawURLEncoding.DecodeString(v.Id)
+			return bs
+		}),
+		UserVerification: protocol.VerificationRequired,
+		Extensions:       nil,
+	}
 }
 
 func (d *dummy_store) SaveCredential(u *User, c *wan.Credential) error {
