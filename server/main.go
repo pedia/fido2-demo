@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/duo-labs/webauthn/protocol"
+	"github.com/duo-labs/webauthn/protocol/webauthncose"
 	wan "github.com/duo-labs/webauthn/webauthn"
 	"github.com/gin-gonic/gin"
 )
@@ -82,16 +84,22 @@ func BeginRegistration(c *gin.Context) {
 	//    "requireResidentKey": false,
 	//    "userVerification": "required"
 	// }
-	authSelect := protocol.AuthenticatorSelection{
-		ResidentKey:        protocol.ResidentKeyRequirementPreferred,
+
+	// https://demo.yubico.com/webauthn-technical
+	// "authenticatorSelection": {
+	//	  "requireResidentKey": false,
+	//	  "userVerification": "discouraged"
+	//  },
+	authenticatorSelection := protocol.AuthenticatorSelection{
+		// ResidentKey:        protocol.ResidentKeyRequirementPreferred,
 		RequireResidentKey: protocol.ResidentKeyUnrequired(),
-		UserVerification:   protocol.VerificationRequired, //
+		UserVerification:   protocol.VerificationDiscouraged, //
 	}
 
 	user := datastore.GetUser(name) // Find or create the new user
 	options, sessionData, err := web.BeginRegistration(
 		user,
-		wan.WithAuthenticatorSelection(authSelect),
+		wan.WithAuthenticatorSelection(authenticatorSelection),
 	)
 	if err != nil {
 		c.HTML(http.StatusOK, "index.html", err)
@@ -111,28 +119,35 @@ func BeginRegistration(c *gin.Context) {
 	session_to(c, sid)
 
 	// store the sessionData values
-	// options.Response.Parameters = []protocol.CredentialParameter{
-	// 	{
-	// 		Type:      protocol.PublicKeyCredentialType,
-	// 		Algorithm: webauthncose.AlgES256,
-	// 	},
-	// 	{
-	// 		Type:      protocol.PublicKeyCredentialType,
-	// 		Algorithm: webauthncose.AlgRS384,
-	// 	},
-	// }
+	options.Response.Parameters = []protocol.CredentialParameter{
+		{
+			Type:      protocol.PublicKeyCredentialType,
+			Algorithm: webauthncose.AlgES256, // -7
+		},
+		{
+			Type:      protocol.PublicKeyCredentialType,
+			Algorithm: webauthncose.AlgRS256, // -257
+		},
+	}
 
-	log.Printf("%#v\n%#v", options, sessionData)
+	options.Response.Attestation = protocol.PreferDirectAttestation
+
+	// log.Printf("%#v\n%#v", options, sessionData)
 
 	// options.publicKey contain our registration options
 	c.HTML(http.StatusOK, "register.html", map[string]any{"Opts": options, "Username": name})
 }
 
-func FinishRegistration(c *gin.Context) {
-	next := c.Query("next")
+func to_json(o any) string {
+	if bs, erj := json.Marshal(o); erj == nil {
+		return string(bs)
+	}
+	return ""
+}
 
+func FinishRegistration(c *gin.Context) {
 	parsedResponse, err := protocol.ParseCredentialCreationResponseBody(c.Request.Body)
-	log.Printf("response: %#v", parsedResponse)
+	log.Printf("response: %s", to_json(parsedResponse))
 	if err != nil {
 		c.HTML(http.StatusOK, "index.html", err)
 		return
@@ -147,27 +162,12 @@ func FinishRegistration(c *gin.Context) {
 	}
 
 	credential, err := web.CreateCredential(u, *sd, parsedResponse)
-	log.Printf("credential: %s\n%#v", err, credential)
+	// log.Printf("credential: %s\n%#v", err, credential)
 
-	// &webauthn.Credential{
-	// 	ID:[]uint8{0xc1, 0x9c, 0xd8, 0xd1, 0x68, 0xc, 0xb6, 0x30, 0xa0, 0x3a, 0xa1, 0x7c, 0x3c, 0x6c, 0x59, 0xad},
-	// 	PublicKey:[]uint8{0xa5, 0x1, 0x2, 0x3, 0x26, 0x20, 0x1, 0x21, 0x58, 0x20, 0x44, 0xef, 0xc2, 0x64, 0x33, 0xb2, 0x57, 0x31, 0x95, 0xbd, 0xaf, 0xd0, 0x5a, 0x32, 0x0, 0x8f, 0x0, 0x52, 0x7, 0x5a, 0xe1, 0xcc, 0xc7, 0xa3, 0x19, 0x4f, 0xf, 0xab, 0xc6, 0x7c, 0xb4, 0x2e, 0x22, 0x58, 0x20, 0x86, 0x55, 0x60, 0x34, 0xd1, 0x67, 0x22, 0x9a, 0x25, 0xdd, 0x24, 0x93, 0x23, 0x61, 0x4, 0x2c, 0x6b, 0xad, 0x28, 0xae, 0x88, 0x75, 0x3, 0xc3, 0xea, 0xff, 0xa3, 0x65, 0x71, 0x47, 0x74, 0xd4},
-	// 	AttestationType:"none",
-	// 	Authenticator:webauthn.Authenticator{
-	// 			AAGUID:[]uint8{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
-	// 			SignCount:0x0,
-	// 			CloneWarning:false
-	// 		}
-	// 	}
-	datastore.SaveCredential(u, credential)
-
-	// Handle validation or input errors
-	// If creation was successful, store the credential object
 	if err == nil {
-		if next != "" {
-			c.Redirect(http.StatusFound, next)
-			return
-		}
+		// Handle validation or input errors
+		// If creation was successful, store the credential object
+		datastore.SaveCredential(u, credential)
 
 		c.JSON(http.StatusOK, "Registration Success") // Handle next steps
 		return
@@ -216,21 +216,14 @@ func FinishLogin(c *gin.Context) {
 		return
 	}
 
-	next := c.Query("next")
-
 	if parsedResponse, err := protocol.ParseCredentialRequestResponseBody(
 		c.Request.Body,
 	); err == nil {
 		credential, err := web.ValidateLogin(
 			u, *sd, parsedResponse,
 		)
-		log.Printf("login %s\n%#v", err, credential)
+		log.Printf("login %s\n%s", err, to_json(credential))
 		if err == nil {
-			if next != "" {
-				c.Redirect(http.StatusFound, next)
-				return
-			}
-
 			c.JSON(http.StatusOK, "Login Success")
 			return
 		}

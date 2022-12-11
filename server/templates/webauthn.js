@@ -136,17 +136,17 @@ function userNameChanged() {
 function send(url, credential) {
     var p = new URLSearchParams(location.search);
     const next = p.get('next');
-    if (next) {
-        url += '?next='+next;
-    }
 
     var xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");
 
     xhr.onreadystatechange = () => {
-        if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) { 
+        if (xhr.readyState === XMLHttpRequest.DONE) {
             pageLog('server response ' + xhr.status, xhr.responseText);
+            if (xhr.status == 200 && next) {
+                location.href = next;
+            }
         }
     };
 
@@ -159,7 +159,7 @@ function pageLog(ctx, message) {
     var s = '<b>' + ctx + '</b><br />\n';
 
     if (typeof message == 'object') {
-        s +=  JSON.stringify(message) + '<br />\n';
+        s += JSON.stringify(message) + '<br />\n';
     } else {
         s += message + '<br />\n';
     }

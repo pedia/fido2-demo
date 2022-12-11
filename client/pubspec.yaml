@@ -13,6 +13,7 @@ dependencies:
   cupertino_icons: ^1.0.2
   url_launcher:
   flutter_web_auth:
+    path: ../../flutter_web_auth
 
 dev_dependencies:
   flutter_test:

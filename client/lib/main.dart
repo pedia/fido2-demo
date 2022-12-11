@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+// import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_web_auth/flutter_web_auth.dart';
 
 void main() {
@@ -12,11 +12,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      debugShowCheckedModeBanner: false,
+      title: 'WebAuthn Demo',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const MyHomePage(title: 'WebAuthn Demo'),
     );
   }
 }
@@ -41,6 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final q = Map<String, List<String>>.from(u.queryParametersAll);
     q['username'] = <String>[name];
+    q['next'] = <String>['foobar://success'];
 
     final u2 = Uri.https(u.authority, u.path, q);
     // launchUrl(u2);
@@ -65,30 +65,35 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Center(
+      body: Padding(
+        padding: const EdgeInsets.all(8),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             SelectableText(
+              'Ensure the default browser is Safari',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 24),
+            SelectableText(
               _status ?? '',
               style: Theme.of(context)
                   .textTheme
-                  .bodyMedium
+                  .bodyLarge
                   ?.apply(color: Colors.red),
             ),
-            TextField(controller: controller),
-            TextButton(
+            const SizedBox(height: 24),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(labelText: 'Username'),
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton(
               onPressed: onRegister,
               child: Text(
-                'Register',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-            ),
-            TextButton(
-              onPressed: onLogin,
-              child: Text(
-                'Login',
-                style: Theme.of(context).textTheme.headlineMedium,
+                'Register or Login',
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
             ),
           ],
