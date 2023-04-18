@@ -21,6 +21,10 @@ iOS App -- 本机指纹/Face
 | Android App | 内嵌 yubi SDK 直接 yubikey 认证 |可 | key ||
 | Android App | 内嵌 ChromeTab |可|key/本机指纹||
 
+- Why yubikit-ios not worked on MacOS
+
+https://github.com/Yubico/yubikit-ios/issues/68
+
 
 # Fido2 Demo
 
