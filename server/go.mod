@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/duo-labs/webauthn v0.0.0-20221205164246-ebaf9b74c6ec
-	github.com/gin-gonic/gin v1.9.0
+	github.com/gin-gonic/gin v1.9.1
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/miekg/dns v1.1.53
